@@ -1,0 +1,25 @@
+En este fichero ire escribiendo a modo de memoria los subobjetivos y dificultades que han surgido a lo largo del desarrollo de este proyecto.
+
+RETO 1: (empezando con la percepcion) 
+Obtener desde un nodo informacion de posicion, nombre, tipo, ... acerca de los objetos del mundo de gazebo.
+
+
+Para ello, descubrimos que existe un plugin, que añadido en el .world, hace que la informacion relevante de los objetos del mundo de gazebo sea publicada en un cierto topic.
+
+
+
+
+RETO 2: (empezando con la atencion)
+Conseguir una funcion que consiga mover el cuello de Tiago para mirar a una tf pasada como parametro.
+
+
+
+RETO 3: (empezando a usar ros2_knowledgment graph)
+Usar la informacion del RETO 1 y añadir al grafo los nodos y edges para establecer un conocimiento de aquellos objetos situados a un cierto radio R.
+
+
+RETO 4: (aprender a usar servicios en ros2)
+Aprender e implementar un servicio en ros2 que permita establecer unos edges "what see" en el grafo, indicando cuales son los objetos de interes.
+
+RETO 5: (organizar la atencion con varios objetos de interes)
+Crear un sistema de lista circular o similar en el cual se permita añadir los objetos de interes conseguidos en el RETO 4. Tiene que poder entender de tiempos (cuando le toca percibir a cada uno).
