@@ -5,6 +5,7 @@
 using std::placeholders::_1;
 using namespace std::chrono_literals;
 
+
 Perception::Perception()
 : rclcpp_lifecycle::LifecycleNode("perception_node")
 {
@@ -18,6 +19,8 @@ CallbackReturnT Perception::on_configure(const rclcpp_lifecycle::State & state)
 {
   RCLCPP_INFO(
     get_logger(), "[%s] Configuring from [%s] state...", get_name(), state.label().c_str());
+
+  knowledge_graph_ = ros2_knowledge_graph::GraphFactory::getInstance(shared_from_this());
 
   return CallbackReturnT::SUCCESS;
 }
@@ -42,6 +45,7 @@ CallbackReturnT Perception::on_cleanup(const rclcpp_lifecycle::State & state)
 {
   RCLCPP_INFO(
     get_logger(), "[%s] Cleanning Up from [%s] state...", get_name(), state.label().c_str());
+  ros2_knowledge_graph::GraphFactory::cleanUp();
   return CallbackReturnT::SUCCESS;
 }
 
@@ -59,25 +63,52 @@ CallbackReturnT Perception::on_error(const rclcpp_lifecycle::State & state)
   return CallbackReturnT::SUCCESS;
 }
 
+float Perception::euclidean_distance(geometry_msgs::msg::Pose  robot_pose, geometry_msgs::msg::Pose obj_pose) {
+
+  return sqrt( pow(robot_pose.position.x - obj_pose.position.x, 2) + pow(robot_pose.position.y - obj_pose.position.y, 2) + pow(robot_pose.position.z - obj_pose.position.z, 2));
+}
+
 
 void Perception::model_state_callback(const gazebo_msgs::msg::ModelStates::SharedPtr msg)
 {
   std::vector<std::string>::iterator it;
   // Element to be searched
-  std::string ser = "bookshelf_4";
-    
-  // std::find function call
-  it = std::find (msg->name.begin(), msg->name.end(), ser);
+  
+  geometry_msgs::msg::Pose robot_pose;
+  std::string robot_name = "tiago";
+
+  it = std::find (msg->name.begin(), msg->name.end(), robot_name);
   if (it != msg->name.end())
   {
-    std::cout << "Element " << ser <<" found at position : " ;
-    std::cout << it - msg->name.begin() << " (counting from zero) \n" ;
-    std::cout << msg->pose[it - msg->name.begin()].position.x << " " << 
-      msg->pose[it - msg->name.begin()].position.y << " " << 
-      msg->pose[it - msg->name.begin()].position.z << std::endl;
+    int position = it - msg->name.begin();
+    robot_pose = msg->pose[position];
   }
-  else
-    std::cout << "Element not found.\n\n";
+  else {
+    std::cout << "Robot with name " << robot_name << " not found in gazebo models.\n\n";
+  }
+
+  // Search objects near to the robot
+  int i = 0;
+  for (auto obj_pose: msg->pose) {
+
+    if (euclidean_distance(robot_pose, obj_pose) < 3) {
+
+      auto perceived_object = ros2_knowledge_graph::new_node(msg->name[i], "object");
+      knowledge_graph_->update_node(perceived_object);
+
+      geometry_msgs::msg::TransformStamped tf_robot2object;
+      //tf1.transform.translation.x = 7.0;
+      auto edge_tf_robot2object = ros2_knowledge_graph::new_edge(robot_name, msg->name[i], tf_robot2object);
+      knowledge_graph_->update_edge(edge_tf_robot2object);
+
+    }
+    i++;
+  }  
+}
+
+void Perception::update_knowledge() 
+{
+
 }
 
 void Perception::do_work()

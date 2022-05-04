@@ -8,7 +8,7 @@ endif()
 
 # Default to C++14
 if(NOT CMAKE_CXX_STANDARD)
-  set(CMAKE_CXX_STANDARD 14)
+  set(CMAKE_CXX_STANDARD 17)
 endif()
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
@@ -22,6 +22,8 @@ find_package(geometry_msgs REQUIRED)
 find_package(rclcpp_lifecycle REQUIRED)
 find_package(lifecycle_msgs REQUIRED)
 find_package(gazebo_msgs REQUIRED)
+find_package(ros2_knowledge_graph REQUIRED)
+find_package(ros2_knowledge_graph_msgs REQUIRED)
 
 set(dependencies
     rclcpp
@@ -29,6 +31,8 @@ set(dependencies
     geometry_msgs
     lifecycle_msgs
     gazebo_msgs
+    ros2_knowledge_graph
+    ros2_knowledge_graph_msgs
 )
 
 include_directories(include)
