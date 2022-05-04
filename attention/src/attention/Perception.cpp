@@ -6,11 +6,17 @@ using std::placeholders::_1;
 using namespace std::chrono_literals;
 
 
-Perception::Perception()
-: rclcpp_lifecycle::LifecycleNode("perception_node")
+Perception::Perception(std::string robot_frame, float perception_range)
+: rclcpp_lifecycle::LifecycleNode("perception_node") 
 {
   model_state_sub_ = create_subscription<gazebo_msgs::msg::ModelStates>(
     "/gazebo/model_states", 1, std::bind(&Perception::model_state_callback, this, _1));
+  
+  tf_buffer_ = std::make_unique<tf2_ros::Buffer>(this->get_clock());
+  transform_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
+  
+  robot_frame_ = robot_frame;
+  perception_range_ = perception_range;
 }
 
 using CallbackReturnT = rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn;
@@ -21,6 +27,9 @@ CallbackReturnT Perception::on_configure(const rclcpp_lifecycle::State & state)
     get_logger(), "[%s] Configuring from [%s] state...", get_name(), state.label().c_str());
 
   knowledge_graph_ = ros2_knowledge_graph::GraphFactory::getInstance(shared_from_this());
+
+  auto robot = ros2_knowledge_graph::new_node(robot_frame_, "robot");
+  knowledge_graph_->update_node(robot);
 
   return CallbackReturnT::SUCCESS;
 }
@@ -63,55 +72,85 @@ CallbackReturnT Perception::on_error(const rclcpp_lifecycle::State & state)
   return CallbackReturnT::SUCCESS;
 }
 
-float Perception::euclidean_distance(geometry_msgs::msg::Pose  robot_pose, geometry_msgs::msg::Pose obj_pose) {
-
-  return sqrt( pow(robot_pose.position.x - obj_pose.position.x, 2) + pow(robot_pose.position.y - obj_pose.position.y, 2) + pow(robot_pose.position.z - obj_pose.position.z, 2));
-}
-
-
 void Perception::model_state_callback(const gazebo_msgs::msg::ModelStates::SharedPtr msg)
-{
-  std::vector<std::string>::iterator it;
-  // Element to be searched
-  
-  geometry_msgs::msg::Pose robot_pose;
-  std::string robot_name = "tiago";
-
-  it = std::find (msg->name.begin(), msg->name.end(), robot_name);
-  if (it != msg->name.end())
-  {
-    int position = it - msg->name.begin();
-    robot_pose = msg->pose[position];
-  }
-  else {
-    std::cout << "Robot with name " << robot_name << " not found in gazebo models.\n\n";
-  }
-
-  // Search objects near to the robot
-  int i = 0;
-  for (auto obj_pose: msg->pose) {
-
-    if (euclidean_distance(robot_pose, obj_pose) < 3) {
-
-      auto perceived_object = ros2_knowledge_graph::new_node(msg->name[i], "object");
-      knowledge_graph_->update_node(perceived_object);
-
-      geometry_msgs::msg::TransformStamped tf_robot2object;
-      //tf1.transform.translation.x = 7.0;
-      auto edge_tf_robot2object = ros2_knowledge_graph::new_edge(robot_name, msg->name[i], tf_robot2object);
-      knowledge_graph_->update_edge(edge_tf_robot2object);
-
-    }
-    i++;
-  }  
+{ 
+  objects_name_ = msg->name;
+  objects_pose_ = msg->pose;
 }
 
 void Perception::update_knowledge() 
-{
+{ 
 
-}
+  int i = 0;
+  for (auto obj_name: objects_name_) {
+
+    // GET ROBOT TO ODOM
+    
+    auto robot2odom_tf_msg = tf_buffer_->lookupTransform("odom", robot_frame_, tf2::TimePointZero);
+
+    tf2::Stamped<tf2::Transform> robot2odom;
+    robot2odom.setOrigin(tf2::Vector3(robot2odom_tf_msg.transform.translation.x, 
+                                      robot2odom_tf_msg.transform.translation.y,
+                                      robot2odom_tf_msg.transform.translation.z));
+    
+    tf2::Quaternion rot(robot2odom_tf_msg.transform.rotation.x,
+                        robot2odom_tf_msg.transform.rotation.y,
+                        robot2odom_tf_msg.transform.rotation.z,
+                        robot2odom_tf_msg.transform.rotation.w);
+    
+
+    robot2odom.setRotation(rot);
+
+    // GET ODOM TO OBJECT
+ 
+    tf2::Stamped<tf2::Transform> odom2object;
+    robot2odom.setOrigin(tf2::Vector3(objects_pose_[i].position.x, 
+                                      objects_pose_[i].position.y,
+                                      objects_pose_[i].position.z));
+
+    tf2::Quaternion rot2(objects_pose_[i].orientation.x,
+                        objects_pose_[i].orientation.y,
+                        objects_pose_[i].orientation.z,
+                        objects_pose_[i].orientation.w);
+
+    robot2odom.setRotation(rot2);
+    
+    tf2::Transform robot2object = robot2odom * odom2object;
+
+    geometry_msgs::msg::TransformStamped robot2object_tf_msg;
+
+    tf2::Vector3 origin = robot2object.getOrigin();
+    tf2::Quaternion quat = robot2object.getRotation();
+
+    // Convert
+    robot2object_tf_msg.transform.translation.x = origin.getX();
+    robot2object_tf_msg.transform.translation.y = origin.getY();
+    robot2object_tf_msg.transform.translation.z = origin.getZ();
+    
+    robot2object_tf_msg.transform.rotation.x = quat.getX();
+    robot2object_tf_msg.transform.rotation.y = quat.getY();
+    robot2object_tf_msg.transform.rotation.z = quat.getZ();
+    robot2object_tf_msg.transform.rotation.w = quat.getW();
+
+    robot2object_tf_msg.header.stamp = now();
+    robot2object_tf_msg.header.frame_id = robot_frame_;
+    robot2object_tf_msg.child_frame_id = obj_name;
+
+    if (obj_name != "tiago") {
+      // Add to knowledge
+      auto perceived_object = ros2_knowledge_graph::new_node(obj_name, "object");
+      knowledge_graph_->update_node(perceived_object);
+
+      auto edge_robot2object_tf = ros2_knowledge_graph::new_edge<geometry_msgs::msg::TransformStamped>(robot_frame_, obj_name, robot2object_tf_msg);
+      knowledge_graph_->update_edge(edge_robot2object_tf); 
+    }
+    
+    i++;
+  } 
+
+} 
 
 void Perception::do_work()
 {
-
+  update_knowledge();
 }

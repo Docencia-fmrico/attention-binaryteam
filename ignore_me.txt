@@ -3,23 +3,63 @@ En este fichero ire escribiendo a modo de memoria los subobjetivos y dificultade
 RETO 1: (empezando con la percepcion) 
 Obtener desde un nodo informacion de posicion, nombre, tipo, ... acerca de los objetos del mundo de gazebo.
 
+Para ello, descubrimos que existe un plugin, que añadido en el .world, hace que la informacion relevante de los objetos del mundo de gazebo sea publicada en un cierto topic. Ese plugin es: gazebo_ros_state
+Para usarlo, hay que incluirlo dentro de la etiqueta <world> en el .world que estemos usando.
+Añadiendo: 
+<plugin name="gazebo_ros_state" filename="libgazebo_ros_state.so">
+ <ros>
+  <namespace>/gazebo</namespace>
+ </ros>
+ <update_rate>1.0</update_rate>
+</plugin>
 
-Para ello, descubrimos que existe un plugin, que añadido en el .world, hace que la informacion relevante de los objetos del mundo de gazebo sea publicada en un cierto topic.
+Tras lanzar veremos 3 nuevos topics:
+/gazebo/link_states
+/gazebo/model_states
+/ground_truth_odom
 
+Por alguna razon que desconozco, en el mapa del hospital todas las posiciones de los 
+objetos nos salen todo a ceros...
 
+Cambiamos al mapa de la casa y ahora si.
 
+El tipo de mensaje mandado en /gazebo/model_states es: gazebo_msgs/msg/ModelStates
+string[] name	nombres de los modelos
+geometry_msgs/Pose[] pose   posicion de los modelos
+geometry_msgs/Twist[] twist	orientacion de los modelos
+
+Subscribiendonos a este topic obtener lo necesario para dar por finalizada este reto.
 
 RETO 2: (empezando con la atencion)
-Conseguir una funcion que consiga mover el cuello de Tiago para mirar a una tf pasada como parametro.
+Conseguir una funcion que consiga mover el cuello de Tiago para mirar a una tf publicada 
+cuyo name_id es pasado como parametro.
 
+Para leer las TF publicadas se utiliza un tf2_ros::TransformListener y un tf2_ros::Buffer. 
+El buffer, almacena las TF con una caducidad máxima de 10 segundos. 
+Podemos hacer un buffer->lookupTransform para obtener la trasformada entre dos TF que haya 
+en el buffer. 
+Utiliza los dos string pasados como parametro para referenciarse a ellos.
+
+
+Lo primero es conseguir obtener las coordenadas del objeto respecto a nuestro cuello.
 
 
 RETO 3: (empezando a usar ros2_knowledgment graph)
-Usar la informacion del RETO 1 y añadir al grafo los nodos y edges para establecer un conocimiento de aquellos objetos situados a un cierto radio R.
+Usar la informacion del RETO 1 y añadir al grafo los nodos y edges para establecer un conocimiento 
+de aquellos objetos situados a un cierto radio R.
+
+Para usar el grafo desde dos procesos usamos una funcion que utiliza un patron de diseño de factoria
+(create mil instancias de ese objeto, que solo existira uno realmente).
+Ademas esta libreria permite que todas las instancias que creen tengan el mismo contenido ya que se 
+comunican
+por detras. Esto permite leer del grafo desde distintos procesos.
+
 
 
 RETO 4: (aprender a usar servicios en ros2)
-Aprender e implementar un servicio en ros2 que permita establecer unos edges "what see" en el grafo, indicando cuales son los objetos de interes.
+Aprender e implementar un servicio en ros2 que permita establecer unos edges "what see" en el 
+grafo, indicando cuales son los objetos de interes.
 
 RETO 5: (organizar la atencion con varios objetos de interes)
-Crear un sistema de lista circular o similar en el cual se permita añadir los objetos de interes conseguidos en el RETO 4. Tiene que poder entender de tiempos (cuando le toca percibir a cada uno).
+Crear un sistema de lista circular o similar en el cual se permita añadir los objetos de interes
+conseguidos en el RETO 4. Tiene que poder entender de tiempos (cuando le toca percibir a cada uno).
