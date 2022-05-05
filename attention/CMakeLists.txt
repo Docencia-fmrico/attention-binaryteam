@@ -24,6 +24,8 @@ find_package(lifecycle_msgs REQUIRED)
 find_package(gazebo_msgs REQUIRED)
 find_package(ros2_knowledge_graph REQUIRED)
 find_package(ros2_knowledge_graph_msgs REQUIRED)
+find_package(tf2 REQUIRED)
+find_package(tf2_ros REQUIRED)
 
 set(dependencies
     rclcpp
@@ -33,6 +35,8 @@ set(dependencies
     gazebo_msgs
     ros2_knowledge_graph
     ros2_knowledge_graph_msgs
+    tf2
+    tf2_ros
 )
 
 include_directories(include)

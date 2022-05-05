@@ -85,56 +85,29 @@ void Perception::update_knowledge()
   for (auto obj_name: objects_name_) {
 
     // GET ROBOT TO ODOM
-    
-    auto robot2odom_tf_msg = tf_buffer_->lookupTransform("odom", robot_frame_, tf2::TimePointZero);
+    geometry_msgs::msg::TransformStamped robot2odom_tf_msg = 
+      tf_buffer_->lookupTransform("odom", robot_frame_, tf2::TimePointZero);
 
     tf2::Stamped<tf2::Transform> robot2odom;
-    robot2odom.setOrigin(tf2::Vector3(robot2odom_tf_msg.transform.translation.x, 
-                                      robot2odom_tf_msg.transform.translation.y,
-                                      robot2odom_tf_msg.transform.translation.z));
-    
-    tf2::Quaternion rot(robot2odom_tf_msg.transform.rotation.x,
-                        robot2odom_tf_msg.transform.rotation.y,
-                        robot2odom_tf_msg.transform.rotation.z,
-                        robot2odom_tf_msg.transform.rotation.w);
-    
-
-    robot2odom.setRotation(rot);
+    tf2::fromMsg(robot2odom_tf_msg, robot2odom);
 
     // GET ODOM TO OBJECT
- 
     tf2::Stamped<tf2::Transform> odom2object;
-    robot2odom.setOrigin(tf2::Vector3(objects_pose_[i].position.x, 
+    odom2object.setOrigin(tf2::Vector3(objects_pose_[i].position.x, 
                                       objects_pose_[i].position.y,
                                       objects_pose_[i].position.z));
 
-    tf2::Quaternion rot2(objects_pose_[i].orientation.x,
-                        objects_pose_[i].orientation.y,
-                        objects_pose_[i].orientation.z,
-                        objects_pose_[i].orientation.w);
+    tf2::Quaternion q;
+    q.setRPY(objects_pose_[i].orientation.x, objects_pose_[i].orientation.y, objects_pose_[i].orientation.z);
+    odom2object.setRotation(q);
 
-    robot2odom.setRotation(rot2);
-    
     tf2::Transform robot2object = robot2odom * odom2object;
-
     geometry_msgs::msg::TransformStamped robot2object_tf_msg;
-
-    tf2::Vector3 origin = robot2object.getOrigin();
-    tf2::Quaternion quat = robot2object.getRotation();
-
-    // Convert
-    robot2object_tf_msg.transform.translation.x = origin.getX();
-    robot2object_tf_msg.transform.translation.y = origin.getY();
-    robot2object_tf_msg.transform.translation.z = origin.getZ();
-    
-    robot2object_tf_msg.transform.rotation.x = quat.getX();
-    robot2object_tf_msg.transform.rotation.y = quat.getY();
-    robot2object_tf_msg.transform.rotation.z = quat.getZ();
-    robot2object_tf_msg.transform.rotation.w = quat.getW();
 
     robot2object_tf_msg.header.stamp = now();
     robot2object_tf_msg.header.frame_id = robot_frame_;
     robot2object_tf_msg.child_frame_id = obj_name;
+    robot2object_tf_msg.transform = tf2::toMsg(robot2object);
 
     if (obj_name != "tiago") {
       // Add to knowledge
