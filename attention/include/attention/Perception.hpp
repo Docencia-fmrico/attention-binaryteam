@@ -42,7 +42,7 @@ public:
   CallbackReturnT on_cleanup(const rclcpp_lifecycle::State & state);
   CallbackReturnT on_shutdown(const rclcpp_lifecycle::State & state);
   CallbackReturnT on_error(const rclcpp_lifecycle::State & state);
-
+  
   void update_knowledge();
   void do_work();
 

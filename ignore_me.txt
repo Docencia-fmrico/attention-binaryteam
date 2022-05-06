@@ -31,17 +31,20 @@ geometry_msgs/Twist[] twist	orientacion de los modelos
 Subscribiendonos a este topic obtener lo necesario para dar por finalizada este reto.
 
 RETO 2: (empezando con la atencion)
-Conseguir una funcion que consiga mover el cuello de Tiago para mirar a una tf publicada 
-cuyo name_id es pasado como parametro.
 
-Para leer las TF publicadas se utiliza un tf2_ros::TransformListener y un tf2_ros::Buffer. 
-El buffer, almacena las TF con una caducidad máxima de 10 segundos. 
-Podemos hacer un buffer->lookupTransform para obtener la trasformada entre dos TF que haya 
-en el buffer. 
-Utiliza los dos string pasados como parametro para referenciarse a ellos.
+SUBRETO 2.1:
+Conseguir mover el cuello de tiago sin más. (comprobar que todo funciona). Obtener el rango de movimiento de 
+cada articulacion y como esta orientado el sistema de coordenadas de giro de la cabeza(donde esta el 0 y
+donde el maximo).
 
+SUBRETO 2.2:
+Obtener los calculos de las rotaciones necesarias en el cuello para mirar al objetivo
 
-Lo primero es conseguir obtener las coordenadas del objeto respecto a nuestro cuello.
+SUBRETO 2.3:
+Usar los dos retos anteriores para mirar a un objeto cuyo nombre especificamos por codigo en 
+plan cutre (debe de estar en el grafo). Solo debe mirarlo si las restricciones de movimiento de la cabeza
+lo permiten.
+
 
 
 RETO 3: (empezando a usar ros2_knowledgment graph)
@@ -53,6 +56,15 @@ Para usar el grafo desde dos procesos usamos una funcion que utiliza un patron d
 Ademas esta libreria permite que todas las instancias que creen tengan el mismo contenido ya que se 
 comunican
 por detras. Esto permite leer del grafo desde distintos procesos.
+
+Para leer las TF publicadas se utiliza un tf2_ros::TransformListener y un tf2_ros::Buffer. 
+El buffer, almacena las TF con una caducidad máxima de 10 segundos. 
+Podemos hacer un buffer->lookupTransform para obtener la trasformada entre dos TF que haya 
+en el buffer. 
+Utiliza los dos string pasados como parametro para referenciarse a ellos.
+
+
+Lo primero es conseguir obtener las coordenadas del objeto respecto a nuestro cuello.
 
 
 

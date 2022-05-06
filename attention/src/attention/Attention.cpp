@@ -1,5 +1,6 @@
 #include <vector>
 #include <limits>
+#include <math.h> 
 #include "attention/Attention.hpp"
 
 using std::placeholders::_1;
@@ -67,33 +68,52 @@ CallbackReturnT Attention::on_error(const rclcpp_lifecycle::State & state)
   return CallbackReturnT::SUCCESS;
 }
 
-void Attention::move_head()
+bool Attention::look_at(float x, float y, float z) 
 {
+  float d = sqrt( pow(x-0, 2) + pow(y-0, 2)); // Distance to z axis (0, 0)->(x,y)
+  
+  float yaw = std::atan2(y, x);
+  float pitch =  std::atan2(z, d);
+
+  // Check neck capabilities
+  if (yaw > M_PI_2 || yaw < -M_PI_2 || pitch > M_PI_2 || pitch < -M_PI_2) {
+    return false;
+  }
+
+  // Send to neck motors
   trajectory_msgs::msg::JointTrajectory msg;
   std::vector<std::string> joints {"head_1_joint", "head_2_joint"};
   msg.header.stamp = now();
   msg.joint_names.resize(2);
   msg.joint_names = joints;
   msg.points.resize(1);
+  
   msg.points[0].positions.resize(2);
   msg.points[0].velocities.resize(2);
   msg.points[0].accelerations.resize(2);
   msg.points[0].effort.resize(2);
-  msg.points[0].positions[0] = -1.57;
-  msg.points[0].positions[1] = 0.0;
+  msg.points[0].positions[0] = yaw;
+  msg.points[0].positions[1] = pitch;
   msg.points[0].velocities[0] = 0.1;
-  msg.points[0].velocities[1] = 0.0;
+  msg.points[0].velocities[1] = 0.1;
   msg.points[0].accelerations[0] = 0.1;
-  msg.points[0].accelerations[1] = 0.0;
+  msg.points[0].accelerations[1] = 0.1;
   msg.points[0].effort[0] = 0.1;
   msg.points[0].effort[1] = 0.1;
-  msg.points[0].time_from_start = rclcpp::Duration(1);
 
+  // Durations
+  msg.points[0].time_from_start = rclcpp::Duration(1);// * (abs((yaw + pitch)/2)/(M_PI/2)); // Depending of the angle
+  
   neck_pose_pub_->publish(msg);
 
+  return true;
 }
 
 void Attention::do_work()
 {
-  move_head();
+  if (!look_at(-2, 2, 2)) {
+
+    std::cout << "Neck cant twist so much!" << std::endl;
+  }
+  
 }

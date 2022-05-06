@@ -39,6 +39,7 @@ private:
   std::shared_ptr<tf2_ros::TransformListener> tf_neck_listener_{nullptr};
   std::unique_ptr<tf2_ros::Buffer> tf_neck_buffer_;
 
-  void move_head();
+  bool look_at(float x, float y, float z);
+
 };
 
