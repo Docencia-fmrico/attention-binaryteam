@@ -66,22 +66,34 @@ CallbackReturnT Attention::on_error(const rclcpp_lifecycle::State & state)
     get_logger(), "[%s] Shutting Down from [%s] state...", get_name(), state.label().c_str());
   return CallbackReturnT::SUCCESS;
 }
-void Attention::look_at(geometry_msgs::msg::TransformStamped object_tf) {
 
-  geometry_msgs::msg::TransformStamped tf_neck2object;
-  
-  try {
-    tf_neck2object = tf_neck_buffer_->lookupTransform(toFrameRel, fromFrameRel, tf2::TimePointZero);
-  } catch (tf2::TransformException & ex) {
-    RCLCPP_INFO(
-      this->get_logger(), "Could not transform %s to %s: %s",
-      toFrameRel.c_str(), fromFrameRel.c_str(), ex.what());
-    return;
-  }
+void Attention::move_head()
+{
+  trajectory_msgs::msg::JointTrajectory msg;
+  std::vector<std::string> joints {"head_1_joint", "head_2_joint"};
+  msg.header.stamp = now();
+  msg.joint_names.resize(2);
+  msg.joint_names = joints;
+  msg.points.resize(1);
+  msg.points[0].positions.resize(2);
+  msg.points[0].velocities.resize(2);
+  msg.points[0].accelerations.resize(2);
+  msg.points[0].effort.resize(2);
+  msg.points[0].positions[0] = -1.57;
+  msg.points[0].positions[1] = 0.0;
+  msg.points[0].velocities[0] = 0.1;
+  msg.points[0].velocities[1] = 0.0;
+  msg.points[0].accelerations[0] = 0.1;
+  msg.points[0].accelerations[1] = 0.0;
+  msg.points[0].effort[0] = 0.1;
+  msg.points[0].effort[1] = 0.1;
+  msg.points[0].time_from_start = rclcpp::Duration(1);
+
+  neck_pose_pub_->publish(msg);
 
 }
 
 void Attention::do_work()
 {
-
+  move_head();
 }

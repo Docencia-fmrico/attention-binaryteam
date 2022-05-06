@@ -31,12 +31,14 @@ public:
   CallbackReturnT on_cleanup(const rclcpp_lifecycle::State & state);
   CallbackReturnT on_shutdown(const rclcpp_lifecycle::State & state);
   CallbackReturnT on_error(const rclcpp_lifecycle::State & state);
-  void look_at(geometry_msgs::msg::TransformStamped object_tf);
+
   void do_work();
 
 private:
   rclcpp_lifecycle::LifecyclePublisher<trajectory_msgs::msg::JointTrajectory>::SharedPtr neck_pose_pub_;
   std::shared_ptr<tf2_ros::TransformListener> tf_neck_listener_{nullptr};
   std::unique_ptr<tf2_ros::Buffer> tf_neck_buffer_;
+
+  void move_head();
 };
 

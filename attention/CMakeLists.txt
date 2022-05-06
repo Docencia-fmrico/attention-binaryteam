@@ -41,7 +41,7 @@ set(dependencies
 
 include_directories(include)
 
-add_library(${PROJECT_NAME} SHARED src/attention/Perception.cpp)
+add_library(${PROJECT_NAME} SHARED src/attention/Perception.cpp src/attention/Attention.cpp)
 ament_target_dependencies(${PROJECT_NAME} ${dependencies})
 
 add_executable(perception_main
@@ -50,9 +50,16 @@ add_executable(perception_main
 ament_target_dependencies(perception_main ${dependencies})
 target_link_libraries(perception_main ${PROJECT_NAME})
 
+add_executable(attention_main
+  src/attention_main.cpp
+)
+ament_target_dependencies(attention_main ${dependencies})
+target_link_libraries(attention_main ${PROJECT_NAME})
+
 install(TARGETS
   ${PROJECT_NAME}
   perception_main
+  attention_main
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION lib/${PROJECT_NAME}
