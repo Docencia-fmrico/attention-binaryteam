@@ -76,7 +76,7 @@ bool Attention::look_at(float x, float y, float z)
   float pitch =  std::atan2(z, d);
 
   // Check neck capabilities
-  if (yaw > M_PI_2 || yaw < -M_PI_2 || pitch > M_PI_2 || pitch < -M_PI_2) {
+  if (yaw > 1.04 || yaw < -1.04 || pitch > 1.04  || pitch < -1.04 ) {
     return false;
   }
 
@@ -112,7 +112,7 @@ bool Attention::look_at(float x, float y, float z)
 bool Attention::track(std::string name) 
 {
   // Get TF from knowledge graph
-  
+
 
   // Look it
   if (!look_at()) {

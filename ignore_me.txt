@@ -37,8 +37,15 @@ Conseguir mover el cuello de tiago sin más. (comprobar que todo funciona). Obte
 cada articulacion y como esta orientado el sistema de coordenadas de giro de la cabeza(donde esta el 0 y
 donde el maximo).
 
+Para poder usar el cuello en el simulador tendremos que añadirle: -ros-args -p use_sim_time:=true
+a la hora de runear nuestro programa.
+Por default esta en YAW:0 PITCH:0 . El angulo va de -60 a 60 pero hay que meterselos en radianes.
+YAW+ es en sentido antihorario. PITCH+ es en sentido hacia arriba.
+
 SUBRETO 2.2:
-Obtener los calculos de las rotaciones necesarias en el cuello para mirar al objetivo
+Obtener los calculos de las rotaciones necesarias en el cuello para mirar al objetivo.
+
+Logrado usando trigonometria
 
 SUBRETO 2.3:
 Usar los dos retos anteriores para mirar a un objeto cuyo nombre especificamos por codigo en 
