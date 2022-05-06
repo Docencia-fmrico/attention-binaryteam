@@ -40,6 +40,7 @@ private:
   std::unique_ptr<tf2_ros::Buffer> tf_neck_buffer_;
 
   bool look_at(float x, float y, float z);
+  bool track(std::string name);
 
 };
 

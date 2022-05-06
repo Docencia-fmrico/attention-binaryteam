@@ -109,10 +109,22 @@ bool Attention::look_at(float x, float y, float z)
   return true;
 }
 
+bool Attention::track(std::string name) 
+{
+  // Get TF from knowledge graph
+  
+
+  // Look it
+  if (!look_at()) {
+    std::cout << "Neck cant twist so much!" << std::endl;
+    return false;
+  } 
+
+}
+
 void Attention::do_work()
 {
   if (!look_at(-2, 2, 2)) {
-
     std::cout << "Neck cant twist so much!" << std::endl;
   }
   
