@@ -47,6 +47,8 @@ public:
   void do_work();
 
 private:
+
+  float distance_to_TF(tf2::Transform TF);
   void model_state_callback(const gazebo_msgs::msg::ModelStates::SharedPtr msg);
 
   rclcpp::Subscription<gazebo_msgs::msg::ModelStates>::SharedPtr model_state_sub_;

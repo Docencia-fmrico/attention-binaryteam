@@ -78,6 +78,15 @@ void Perception::model_state_callback(const gazebo_msgs::msg::ModelStates::Share
   objects_pose_ = msg->pose;
 }
 
+float Perception::distance_to_TF(tf2::Transform TF)
+{
+  tf2::Vector3 point = TF.getOrigin();
+
+  float distance = sqrt(pow(point.getX(), 2) + pow(point.getY(), 2));
+
+  return distance;
+}
+
 void Perception::update_knowledge() 
 { 
 
@@ -86,7 +95,7 @@ void Perception::update_knowledge()
 
     // GET ROBOT TO ODOM
     geometry_msgs::msg::TransformStamped robot2odom_tf_msg = 
-      tf_buffer_->lookupTransform("odom", robot_frame_, tf2::TimePointZero);
+      tf_buffer_->lookupTransform(robot_frame_,"odom", tf2::TimePointZero);
 
     tf2::Stamped<tf2::Transform> robot2odom;
     tf2::fromMsg(robot2odom_tf_msg, robot2odom);
@@ -109,15 +118,22 @@ void Perception::update_knowledge()
     robot2object_tf_msg.child_frame_id = obj_name;
     robot2object_tf_msg.transform = tf2::toMsg(robot2object);
 
-    if (obj_name != "tiago") {
+
+    if (distance_to_TF(robot2object) < perception_range_) {
+
+      if (obj_name != "tiago" || obj_name != "ground_plane") {
       // Add to knowledge
       auto perceived_object = ros2_knowledge_graph::new_node(obj_name, "object");
       knowledge_graph_->update_node(perceived_object);
 
       auto edge_robot2object_tf = ros2_knowledge_graph::new_edge<geometry_msgs::msg::TransformStamped>(robot_frame_, obj_name, robot2object_tf_msg);
       knowledge_graph_->update_edge(edge_robot2object_tf); 
+      }
+
+    } else {
+      knowledge_graph_->remove_node(obj_name);
     }
-    
+
     i++;
   } 
 
