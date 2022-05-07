@@ -26,6 +26,7 @@ find_package(ros2_knowledge_graph REQUIRED)
 find_package(ros2_knowledge_graph_msgs REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(tf2_ros REQUIRED)
+find_package(controller_service_msgs REQUIRED)
 
 set(dependencies
     rclcpp
@@ -37,9 +38,13 @@ set(dependencies
     ros2_knowledge_graph_msgs
     tf2
     tf2_ros
+    controller_service_msgs
 )
 
 include_directories(include)
+
+add_executable(controller_node src/controller_node.cpp)
+ament_target_dependencies(controller_node ${dependencies})
 
 add_library(${PROJECT_NAME} SHARED src/attention/Perception.cpp src/attention/Attention.cpp)
 ament_target_dependencies(${PROJECT_NAME} ${dependencies})
@@ -60,6 +65,7 @@ install(TARGETS
   ${PROJECT_NAME}
   perception_main
   attention_main
+  controller_node
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION lib/${PROJECT_NAME}
