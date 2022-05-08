@@ -121,13 +121,13 @@ void Perception::update_knowledge()
 
     if (distance_to_TF(robot2object) < perception_range_) {
 
-      if (obj_name != "tiago" || obj_name != "ground_plane") {
-      // Add to knowledge
-      auto perceived_object = ros2_knowledge_graph::new_node(obj_name, "object");
-      knowledge_graph_->update_node(perceived_object);
+      if (obj_name != "tiago" && obj_name != "ground_plane") {
+        // Add to knowledge
+        auto perceived_object = ros2_knowledge_graph::new_node(obj_name, "object");
+        knowledge_graph_->update_node(perceived_object);
 
-      auto edge_robot2object_tf = ros2_knowledge_graph::new_edge<geometry_msgs::msg::TransformStamped>(robot_frame_, obj_name, robot2object_tf_msg);
-      knowledge_graph_->update_edge(edge_robot2object_tf); 
+        auto edge_robot2object_tf = ros2_knowledge_graph::new_edge<geometry_msgs::msg::TransformStamped>(robot_frame_, obj_name, robot2object_tf_msg);
+        knowledge_graph_->update_edge(edge_robot2object_tf); 
       }
 
     } else {
