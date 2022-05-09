@@ -62,4 +62,6 @@ private:
 
   std::vector<std::string> objects_name_;
   std::vector<geometry_msgs::msg::Pose> objects_pose_;
+
+  rclcpp::TimerBase::SharedPtr timer_;
 };

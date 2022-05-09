@@ -13,6 +13,17 @@ Attention::Attention()
 
   tf_neck_buffer_ = std::make_unique<tf2_ros::Buffer>(this->get_clock());
   tf_neck_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_neck_buffer_);
+  client_ = create_client<controller_service_msgs::srv::Controller>("controller");
+
+  while (!client_->wait_for_service(1s)) {
+    if (!rclcpp::ok()) {
+      RCLCPP_ERROR(get_logger(), "Interrupted while waiting for the service. Exiting.");
+      return;
+    }
+    RCLCPP_INFO(get_logger(), "service not available, waiting again...");
+  }
+    
+  timer_ = create_wall_timer(50ms, std::bind(&Attention::do_work, this));
 }
 
 using CallbackReturnT = rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn;
@@ -70,7 +81,7 @@ CallbackReturnT Attention::on_error(const rclcpp_lifecycle::State & state)
 
 bool Attention::look_at(float x, float y, float z) 
 {
-  float d = sqrt( pow(x-0, 2) + pow(y-0, 2)); // Distance to z axis (0, 0)->(x,y)
+  float d = sqrt( pow(x, 2) + pow(y, 2)); // Distance to z axis (0, 0)->(x,y)
   
   float yaw = std::atan2(y, x);
   float pitch =  std::atan2(z, d);
@@ -125,8 +136,25 @@ bool Attention::track(std::string name)
 
 void Attention::do_work()
 {
-  if (!look_at(-2, 2, 2)) {
-    std::cout << "Neck cant twist so much!" << std::endl;
+  auto request = std::make_shared<controller_service_msgs::srv::Controller::Request>();
+  request->request = "Dame punto";
+
+  pending_responses_.push_back(client_->async_send_request(request));
+
+  auto it = pending_responses_.begin();
+  while (it != pending_responses_.end()) {
+    if (it->valid() && it->wait_for(100ms) == std::future_status::ready) {
+      auto resp = it->get();
+      geometry_msgs::msg::Vector3 point = resp->point2see;
+
+      std::cerr << "x: " << point.x << " y: " << point.y << " z: " << point.z << std::endl;
+      if (!look_at(point.x , point.y, point.z)) {
+        std::cout << "Neck cant twist so much!" << std::endl;
+      }
+      it = pending_responses_.erase(it);
+    } else {
+      ++it;
+    }
   }
   
 }

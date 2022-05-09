@@ -8,16 +8,14 @@ int main(int argc, char * argv[])
   auto node = std::make_shared<Attention>();
 
   node->trigger_transition(lifecycle_msgs::msg::Transition::TRANSITION_CONFIGURE);
+  rclcpp::spin_some(node->get_node_base_interface());
   node->trigger_transition(lifecycle_msgs::msg::Transition::TRANSITION_ACTIVATE);
 
-  rclcpp::Rate rate(5);
-  while (rclcpp::ok()) {
-    node->do_work();
+  rclcpp::executors::SingleThreadedExecutor executor;
+  executor.add_node(node->get_node_base_interface());
+  executor.spin();
 
-    rclcpp::spin_some(node->get_node_base_interface());
-    rate.sleep();
-  }
-  
+  //rclcpp::spin(node->get_node_base_interface());
 
   rclcpp::shutdown();
 

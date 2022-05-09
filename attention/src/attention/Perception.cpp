@@ -10,13 +10,15 @@ Perception::Perception(std::string robot_frame, float perception_range)
 : rclcpp_lifecycle::LifecycleNode("perception_node") 
 {
   model_state_sub_ = create_subscription<gazebo_msgs::msg::ModelStates>(
-    "/gazebo/model_states", 1, std::bind(&Perception::model_state_callback, this, _1));
+    "/gazebo/model_states", 100, std::bind(&Perception::model_state_callback, this, _1));
   
   tf_buffer_ = std::make_unique<tf2_ros::Buffer>(this->get_clock());
   transform_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
   
   robot_frame_ = robot_frame;
   perception_range_ = perception_range;
+
+  timer_ = create_wall_timer(200ms, std::bind(&Perception::do_work, this));
 }
 
 using CallbackReturnT = rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn;
@@ -73,7 +75,8 @@ CallbackReturnT Perception::on_error(const rclcpp_lifecycle::State & state)
 }
 
 void Perception::model_state_callback(const gazebo_msgs::msg::ModelStates::SharedPtr msg)
-{ 
+{
+  std::cerr << "========================";
   objects_name_ = msg->name;
   objects_pose_ = msg->pose;
 }
@@ -89,14 +92,23 @@ float Perception::distance_to_TF(tf2::Transform TF)
 
 void Perception::update_knowledge() 
 { 
-
+  std::cerr << "1";
   int i = 0;
   for (auto obj_name: objects_name_) {
+    std::cerr << "2";
+  geometry_msgs::msg::TransformStamped robot2odom_tf_msg;
 
     // GET ROBOT TO ODOM
-    geometry_msgs::msg::TransformStamped robot2odom_tf_msg = 
-      tf_buffer_->lookupTransform(robot_frame_,"odom", tf2::TimePointZero);
-
+    try
+    {
+      robot2odom_tf_msg = 
+        tf_buffer_->lookupTransform(robot_frame_,"odom", tf2::TimePointZero);
+    }
+    catch(const std::exception& e)
+    {
+      return;
+    }
+    
     tf2::Stamped<tf2::Transform> robot2odom;
     tf2::fromMsg(robot2odom_tf_msg, robot2odom);
 
@@ -120,9 +132,10 @@ void Perception::update_knowledge()
 
 
     if (distance_to_TF(robot2object) < perception_range_) {
-
+      std::cerr << "3";
       if (obj_name != "tiago" && obj_name != "ground_plane") {
         // Add to knowledge
+        std::cerr << "4" << std::endl;
         auto perceived_object = ros2_knowledge_graph::new_node(obj_name, "object");
         knowledge_graph_->update_node(perceived_object);
 
@@ -131,6 +144,7 @@ void Perception::update_knowledge()
       }
 
     } else {
+      std::cerr << "5";
       knowledge_graph_->remove_node(obj_name);
     }
 

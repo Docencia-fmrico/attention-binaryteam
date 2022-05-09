@@ -19,17 +19,14 @@ using namespace std::chrono_literals;
 class ControllerServer : public rclcpp::Node
 {
 public:
-  ControllerServer()
+  ControllerServer(std::vector<std::string> to_see)
   : Node("controller_node")
   {
     service_ = create_service<controller_service_msgs::srv::Controller>(
       "controller", std::bind(&ControllerServer::service_callback, this, _1, _2));
 
-    elements_to_see_sub_ = create_subscription<controller_service_msgs::msg::ElementsToSee>(
-    "/elements_to_see", 1, std::bind(&ControllerServer::fill_list_callback, this, _1));
-
     timer_ = create_wall_timer(1s, std::bind(&ControllerServer::selector, this));
-    
+    targets_ = to_see;
   }
 
   void init()
@@ -49,44 +46,39 @@ private:
       point.z = 0;
     } else {
       add_want_see_edges();
-
+      int count_times = 0;
+      bool not_node = false;
       while (! knowledge_graph_->exist_node(targets_[actual_index_])) {
         selector();
         timer_->reset();
-      } 
+        count_times++;
 
-      auto edge = 
-        knowledge_graph_->get_edges<geometry_msgs::msg::TransformStamped>("head_1_link", targets_[actual_index_]);
-      auto content_edge =
-        ros2_knowledge_graph::get_content<geometry_msgs::msg::TransformStamped>(edge[0].content);
-      geometry_msgs::msg::TransformStamped tf = content_edge.value();
+        if (count_times == targets_.size()) {
+          not_node = true;
+          break;
+        }
+      }  
+      if (! not_node) {
+        auto edge = 
+          knowledge_graph_->get_edges<geometry_msgs::msg::TransformStamped>("head_1_link", targets_[actual_index_]);
+        auto content_edge =
+          ros2_knowledge_graph::get_content<geometry_msgs::msg::TransformStamped>(edge[0].content);
+        geometry_msgs::msg::TransformStamped tf = content_edge.value();
 
-      point = tf.transform.translation;
+        point = tf.transform.translation;
+        std::cerr << "----------------" << actual_index_ << std::endl;
+        std::cerr << "[ " << targets_[actual_index_] << "] ====================" << std::endl;
+        std::cerr << "----------------" << std::endl;
+      } else {
+        point.x = 1;
+        point.y = 0;
+        point.z = 0;
+      }
+      
     }
 
     response->point2see = point;
     
-  }
-
-  void fill_list_callback(const controller_service_msgs::msg::ElementsToSee::SharedPtr msg)
-  { 
-    RCLCPP_INFO(get_logger(), "Vector: %s", targets_[0]);
-    remove_current_edges();
-
-    targets_.erase(targets_.begin(), targets_.end());
-    for (auto target: msg->types_elements) {
-      targets_.push_back(target);
-    }
-  }
-
-  void remove_current_edges()
-  {
-    if (! targets_.empty()) {
-      for (auto target: targets_) {
-        auto edge_robot2object = ros2_knowledge_graph::new_edge<std::string>("head_1_link", target, "want_see");
-        knowledge_graph_->remove_edge(edge_robot2object);
-      }
-    }
   }
 
   void selector()
@@ -105,7 +97,7 @@ private:
   void add_want_see_edges()
   {
     for (auto target: targets_) {
-      if (knowledge_graph_->exist_node(target)) {
+      if (knowledge_graph_->exist_node(target) && knowledge_graph_->exist_node("head_1_link")) {
         auto edge_robot2object = ros2_knowledge_graph::new_edge<std::string>("head_1_link", target, "want_see");
         knowledge_graph_->update_edge(edge_robot2object);
       }
@@ -126,8 +118,8 @@ private:
 int main(int argc, char **argv)
 {
   rclcpp::init(argc, argv);
-
-  auto node = std::make_shared<ControllerServer>();
+  std::vector<std::string> to_see = {"bookshelf_0", "bowl_0"};
+  auto node = std::make_shared<ControllerServer>(to_see);
   
   node->init();
 
